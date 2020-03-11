@@ -1,0 +1,20 @@
+version: 1.0
+
+server:
+  title: Library
+  addr: :8080
+  password: pass
+  protocol: http
+  cdn: /
+  key: 12345678123456781234567812345678
+
+mysql:
+  user: root
+  database: book
+  password: password
+  charset: utf8
+
+path:
+  theme: ./theme/ori/
+  cover: ./cover/
+
