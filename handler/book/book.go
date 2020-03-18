@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
 	"library/config"
-	"library/models/utilities/database"
-	"library/models/utilities/tools"
+	"library/mysql"
+	"library/tool"
+	"library/tpl"
 	"math/rand"
 	"net/http"
 	"os"
@@ -32,7 +32,7 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 		form["publisher"] = ""
 		form["cover"] = ""
 		form["tag"] = make([]string,0)
-		form["time"] = make([]database.FormTime, 0)
+		form["time"] = make([]mysql.FormTime, 0)
 		for {
 			part, err := mr.NextPart()
 			if err != nil {
@@ -52,15 +52,13 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 				switch name {
 				case "tag":
 					form["tag"] = tools.StringSplitBySpace(b.String())
-					fmt.Println("tag", b.String())
 				case "time":
-					form["time"] = []database.FormTime{
+					form["time"] = []mysql.FormTime{
 						{
 							Start: b.String(),
 							End:   "2199-12-05",
 						},
 					}
-					fmt.Println("time", b.String())
 				default:
 					if _, ok := form[name]; ok {
 						form[name] = b.String()
@@ -73,7 +71,7 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 			fileName := strconv.FormatInt(time.Now().Unix(), 10)+ "_" + strconv.FormatInt(int64(rand.Int()), 10) + "_" + part.FileName()
 			form["cover"] = fileName
 			func(){
-				dst, err := os.Create(config.Data.Path.Cover + fileName)
+				dst, err := os.Create(config.Path.Cover + fileName)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -100,11 +98,11 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 		tag, err := json.Marshal(form["tag"])
 		tm, err := json.Marshal(form["time"])
 		favour, err := json.Marshal(make([]string, 0))
-		_, err = database.DB.Exec("INSERT INTO books (book, author, translator, publisher, cover, tag, reading, favour) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		_, err = mysql.Exec("INSERT INTO books (book, author, translator, publisher, cover, tag, reading, favour) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 			form["book"], form["author"], form["translator"], form["publisher"], form["cover"], string(tag), string(tm), string(favour))
 
 		if err != nil {
-			_, _ = database.DB.Exec("alter table books AUTO_INCREMENT=1")
+			_, _ = mysql.Exec("alter table books AUTO_INCREMENT=1")
 			fmt.Println(err)
 			return
 		}
@@ -117,8 +115,7 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 		"Time": time.Now().Format("2006-01-02"),
 	}
 
-	t, _ := template.ParseFiles(config.Data.Path.Theme + "upload/book-add.tpl")
-	if err := t.Execute(w, phrase); err != nil {
+	if err := tpl.BookAdd.Execute(w, phrase); err != nil {
 		fmt.Println(err)
 		_, _ = fmt.Fprintf(w, "%v", "Error")
 	}
@@ -130,12 +127,12 @@ func AddFavour(w http.ResponseWriter, r *http.Request) {
 		tm := time.Now().Format("2006-01-02 15:04:05")
 		content := r.PostFormValue("contents")
 		comment := r.PostFormValue("comment")
-		_, err := database.DB.Exec(`UPDATE books SET favour = JSON_ARRAY_APPEND(favour, '$', JSON_OBJECT("page", ?, "time", ?, "content", ?, "comment", ?)) WHERE id = ?`, page, tm, content, comment, id)
+		_, err := mysql.Exec(`UPDATE books SET favour = JSON_ARRAY_APPEND(favour, '$', JSON_OBJECT("page", ?, "time", ?, "content", ?, "comment", ?)) WHERE id = ?`, page, tm, content, comment, id)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		_, err = database.DB.Exec(`UPDATE books SET favour_cnt=favour_cnt+1 WHERE id = ?`, id)
+		_, err = mysql.Exec(`UPDATE books SET favour_cnt=favour_cnt+1 WHERE id = ?`, id)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -153,7 +150,7 @@ func SetTime(w http.ResponseWriter, r *http.Request) {
 		}
 		typ := `'$[`+fmt.Sprint(id-1)+`].`+r.PostFormValue("typ")+`_time'`
 		tm := r.PostFormValue("time")
-		_, err = database.DB.Exec(`UPDATE books SET reading = JSON_SET(reading, `+typ+`, ?) WHERE id = ?`, tm, ids)
+		_, err = mysql.Exec(`UPDATE books SET reading = JSON_SET(reading, `+typ+`, ?) WHERE id = ?`, tm, ids)
 
 		if err != nil {
 			fmt.Println(err)
@@ -166,13 +163,13 @@ func SetStartRead(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		ids := r.PostFormValue("ids")
 		tm := r.PostFormValue("time")
-		_, err := database.DB.Exec(`UPDATE books SET reading = JSON_ARRAY_APPEND(reading, '$', JSON_OBJECT("start_time", ?, "end_time", "2199-12-05")) WHERE id = ?`, tm, ids)
+		_, err := mysql.Exec(`UPDATE books SET reading = JSON_ARRAY_APPEND(reading, '$', JSON_OBJECT("start_time", ?, "end_time", "2199-12-05")) WHERE id = ?`, tm, ids)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		_, err = database.DB.Exec(`UPDATE books SET reading_cnt=reading_cnt+1 WHERE id = ?`, ids)
+		_, err = mysql.Exec(`UPDATE books SET reading_cnt=reading_cnt+1 WHERE id = ?`, ids)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -211,7 +208,7 @@ func FixCover(w http.ResponseWriter, r *http.Request) {
 
 			cover = strconv.FormatInt(time.Now().Unix(), 10)+ "_" + strconv.FormatInt(int64(rand.Int()), 10) + "_" + part.FileName()
 			func(){
-				dst, err := os.Create(config.Data.Path.Cover + cover)
+				dst, err := os.Create(config.Path.Cover + cover)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -239,7 +236,7 @@ func FixCover(w http.ResponseWriter, r *http.Request) {
 			_, _ = fmt.Fprint(w, "No file")
 			return
 		}
-		_, err = database.DB.Exec(`UPDATE books SET cover = ? WHERE id = ?`, cover, ids)
+		_, err = mysql.Exec(`UPDATE books SET cover = ? WHERE id = ?`, cover, ids)
 
 		if err != nil {
 			fmt.Println(err)
@@ -260,7 +257,7 @@ func Fix(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err)
 			return
 		}
-		_, err = database.DB.Exec(`UPDATE books SET book=?, author=?, translator=?, publisher=?, tag=? WHERE id = ?`, book, author, translator, publisher, string(tag), ids)
+		_, err = mysql.Exec(`UPDATE books SET book=?, author=?, translator=?, publisher=?, tag=? WHERE id = ?`, book, author, translator, publisher, string(tag), ids)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -271,12 +268,12 @@ func Fix(w http.ResponseWriter, r *http.Request) {
 func Index(w http.ResponseWriter, r *http.Request) {
 	sqlStr := fmt.Sprintf("SELECT id, book, author, translator, tag, reading, reading_cnt, favour_cnt FROM books")
 
-	data := func() (data []database.TableBooks) {
-		rows, err := database.DB.Query(sqlStr)
+	data := func() (data []mysql.TableBooks) {
+		rows, err := mysql.Query(sqlStr)
 		if err != nil {
 			panic(err)
 		}
-		row := database.TableBooksSQL{}
+		row := mysql.TableBooksSQL{}
 		for rows.Next() {
 			if err = rows.Scan(&row.Id, &row.Book, &row.Author, &row.Translator, &row.Tag, &row.Reading, &row.ReadingCnt, &row.FavourCnt);
 				err != nil {
@@ -288,7 +285,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}()
 	book, _ := json.Marshal(data)
-	urlShort := fmt.Sprintf("%s://%s/", config.Data.Server.Protocol, r.Host)
+	urlShort := fmt.Sprintf("%s://%s/", config.Server.Protocol, r.Host)
 	phrase := map[string]interface{}{
 		"lang": "zh-cn",
 		"title": "Books",
@@ -296,8 +293,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		"UrlShort": urlShort,
 	}
 
-	t, _ := template.ParseFiles(config.Data.Path.Theme + "upload/book-index.tpl")
-	if err := t.Execute(w, phrase); err != nil {
+	if err := tpl.BookIndex.Execute(w, phrase); err != nil {
 		fmt.Println(err)
 		_, _ = fmt.Fprintf(w, "%v", "Error")
 	}
@@ -306,12 +302,12 @@ func View(w http.ResponseWriter, r *http.Request) {
 	id := strings.Split(fmt.Sprintf("%s", r.URL)[6:], "?")[0]
 	sqlStr := fmt.Sprintf("SELECT * FROM books WHERE id = ? LIMIT 1")
 
-	data := func() (data database.TableBooks) {
-		rows, err := database.DB.Query(sqlStr, id)
+	data := func() (data mysql.TableBooks) {
+		rows, err := mysql.Query(sqlStr, id)
 		if err != nil {
 			panic(err)
 		}
-		row := database.TableBooksSQL{}
+		row := mysql.TableBooksSQL{}
 		if rows.Next() {
 			if err = rows.Scan(&row.Id, &row.Book, &row.Author, &row.Translator, &row.Publisher, &row.Cover, &row.Tag, &row.Reading, &row.ReadingCnt, &row.Favour, &row.FavourCnt);
 				err != nil {
@@ -324,7 +320,7 @@ func View(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	book, _ := json.Marshal(data)
-	urlShort := fmt.Sprintf("%s://%s/", config.Data.Server.Protocol, r.Host)
+	urlShort := fmt.Sprintf("%s://%s/", config.Server.Protocol, r.Host)
 	phrase := map[string]interface{}{
 		"lang": "zh-cn",
 		"title": "Books",
@@ -345,9 +341,7 @@ func View(w http.ResponseWriter, r *http.Request) {
 			return
 		}(),
 	}
-
-	t, _ := template.ParseFiles(config.Data.Path.Theme + "upload/book.tpl")
-	if err := t.Execute(w, phrase); err != nil {
+	if err := tpl.Book.Execute(w, phrase); err != nil {
 		fmt.Println(err)
 		_, _ = fmt.Fprintf(w, "%v", "Error")
 	}

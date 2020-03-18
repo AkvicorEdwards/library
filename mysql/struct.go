@@ -1,34 +1,43 @@
-package database
+package mysql
 
 import (
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 )
 
-type TableCategories struct {
-	Id            int64  `json:"id"`
-	CategoryName  string `json:"category_name"`
-	CoverImgSrc   string `json:"cover_img_src"`
-	NumInCategory int64  `json:"num_in_category"`
-	HitCount      int64  `json:"hit_count"`
+type TableUser struct {
+	Id			int64
+	UserName	string
+	UserPwd		string
+	NickName	string
+	Email		string
+	Permissions	int64
 }
 
-type TableCategoriesSQL struct {
-	Id            sql.NullInt64  `json:"id"`
-	CategoryName  sql.NullString `json:"category_name"`
-	CoverImgSrc   sql.NullString `json:"cover_img_src"`
-	NumInCategory sql.NullInt64  `json:"num_in_category"`
-	HitCount      sql.NullInt64  `json:"hit_count"`
+type TableUserSQL struct {
+	Id			sql.NullInt64
+	UserName	sql.NullString
+	UserPwd		sql.NullString
+	NickName	sql.NullString
+	Email		sql.NullString
+	Permissions	sql.NullInt64
 }
 
-func (a *TableCategoriesSQL) Transfer() (b TableCategories) {
-	b.Id = a.Id.Int64
-	b.CategoryName = base64D2S(a.CategoryName.String)
-	b.CoverImgSrc = base64D2S(a.CoverImgSrc.String)
-	b.NumInCategory = a.NumInCategory.Int64
-	b.HitCount = a.HitCount.Int64
+func (a *TableUserSQL) Transfer() (b TableUser) {
+	b.Id 			= a.Id.Int64
+	b.UserName 		= a.UserName.String
+	b.UserPwd 		= a.UserPwd.String
+	b.NickName 		= a.NickName.String
+	b.Email 		= a.Email.String
+	b.Permissions	= a.Permissions.Int64
 	return
+}
+
+func (TableUserSQL) TableName() string {
+	return "users"
+}
+func (TableUser) TableName() string {
+	return "users"
 }
 
 type FormTime struct {
@@ -85,40 +94,9 @@ func (a *TableBooksSQL) Transfer() (b TableBooks) {
 	return
 }
 
-type TableUser struct {
-	Id         int64
-	Username   string
-	Password   string
-	NickName   string
-	Email      string
-	Permission int64
+func (TableBooks) TableName() string {
+	return "books"
 }
-
-type TableUserSQL struct {
-	Id         sql.NullInt64
-	Username   sql.NullString
-	Password   sql.NullString
-	NickName   sql.NullString
-	Email      sql.NullString
-	Permission sql.NullInt64
-}
-
-func (a *TableUserSQL) Transfer() (b TableUser) {
-	b.Id = a.Id.Int64
-	b.Username = a.Username.String
-	b.Password = a.Password.String
-	b.NickName = a.NickName.String
-	b.Email = a.Email.String
-	b.Permission = a.Permission.Int64
-	return
-}
-
-func base64D2S(str string) string {
-	b, _ := base64.StdEncoding.DecodeString(str)
-	return string(b)
-}
-
-func base64D2B(str string) []byte {
-	b, _ := base64.StdEncoding.DecodeString(str)
-	return b
+func (TableBooksSQL) TableName() string {
+	return "books"
 }

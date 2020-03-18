@@ -2,31 +2,39 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"time"
-
 	"library/config"
 	"library/handler"
-	"library/models/utilities/database"
+	"library/mysql"
+	"library/parameter"
+	"library/tpl"
+	"net/http"
+	"time"
 )
 
 func main() {
-	config.ParseYaml()
+	tpl.Parse()
+	parameter.AddBasicArgs()
+	config.AddParseModule()
+	config.AddParseServer()
+	config.AddParseMySQL()
+	config.AddParseCert()
+	config.AddParsePath()
+	parameter.ParseArgs()
+	mysql.SetDEFAULT(config.MySQL)
 	handler.ParsePrefix()
-	database.Init()
 
 	server := http.Server {
-		Addr:              config.Data.Server.Addr,
-		Handler:           &handler.MyHandler{},
-		ReadTimeout:       20 * time.Second,
-		MaxHeaderBytes:	   8<<20,
+		Addr:           config.Server.Addr,
+		Handler:        &handler.MyHandler{},
+		ReadTimeout:    20 * time.Second,
+		MaxHeaderBytes: 8<<20,
 	}
 
-	fmt.Println("ListenAndServe: ", config.Data.Server.Addr)
-	if err := server.ListenAndServe(); err != nil {
+	fmt.Println("ListenAndServe: ", config.Server.Addr)
+	//if err := server.ListenAndServe(); err != nil {
+	//	panic(err)
+	//}
+	if err := server.ListenAndServeTLS(config.Cert.Cert, config.Cert.Key); err != nil {
 		panic(err)
 	}
-
 }
-
-

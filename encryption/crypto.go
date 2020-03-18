@@ -1,4 +1,4 @@
-package tools
+package encryption
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"io"
@@ -429,4 +430,15 @@ func getPriKey(privateKey []byte, keyType PriKeyType) (*rsa.PrivateKey, error) {
 		}
 	}
 	return priKey, nil
+}
+
+
+func Base64D2S(str string) string {
+	b, _ := base64.StdEncoding.DecodeString(str)
+	return string(b)
+}
+
+func Base64D2B(str string) []byte {
+	b, _ := base64.StdEncoding.DecodeString(str)
+	return b
 }

@@ -12,75 +12,120 @@ import (
 
 type str2func map[string]func(http.ResponseWriter, *http.Request)
 
-var mux str2func
+var public str2func
+var protected str2func
+var private str2func
 var api str2func
 
 func ParsePrefix() {
-	mux = make(str2func)
+	public = make(str2func)
+	protected = make(str2func)
+	private = make(str2func)
 	api = make(str2func)
 
-	// User action
-	api["/login"] = home.Login 		// login.tpl
-	api["/register"] = home.Register 	// register.tpl
-
-	// Home Page
-	mux["/"] = home.Page	 // home.tpl
+	private["/"] = home.Home
+	public["/login"] = home.Login
+	public["/register"] = home.Register
 
 	// Book
-	mux["/add/book"] = book.AddBook
-	mux["/add/favour"] = book.AddFavour
-	mux["/set/time"] = book.SetTime
-	mux["/set/start/read"] = book.SetStartRead
-	mux["/fix"] = book.Fix
-	mux["/fix/cover"] = book.FixCover
-	mux["/books"] = book.Index
-	mux["/book"] = book.View
+	private["/add/book"] = book.AddBook
+	private["/add/favour"] = book.AddFavour
+	private["/set/time"] = book.SetTime
+	private["/set/start/read"] = book.SetStartRead
+	private["/fix"] = book.Fix
+	private["/fix/cover"] = book.FixCover
+	private["/books"] = book.Index
+	private["/book"] = book.View
 
 }
 
 type MyHandler struct {}
 
 func (*MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	// Public
+	if h, ok := public[r.URL.Path]; ok {
+		h(w, r)
+		return
+	}
+	// API
 	if h, ok := api[r.URL.Path]; ok {
 		h(w, r)
 		return
 	}
-	if _, ok := mux[r.URL.Path]; !ok {
-		match := func(pattern string) (matched bool) {
-			matched, _ =  regexp.MatchString(pattern, r.URL.String())
+	// Some content requires login to display
+	if h, ok := protected[r.URL.Path]; ok {
+		h(w, r)
+		return
+	}
+	// Need to be logged in
+	if h, ok := private[r.URL.Path]; ok {
+		// Get session
+		ses, err := session.Get(r, "user")
+		if err != nil {
+			_, _ = fmt.Fprintln(w, "Error 1")
+			return
+		}
+		// Check permission
+		per, ok := ses.Values["permission"].(int64)
+		if !ok {
+			public["/login"](w, r)
 			return
 		}
 
-		fileServer := func(prefix string, dir string) {
-			http.StripPrefix(prefix, http.FileServer(http.Dir(config.Data.Path.Theme + dir))).ServeHTTP(w, r)
+		if per&1 == 0 {
+			_, _ = fmt.Fprintln(w, "Do not have permission")
+			return
 		}
 
-		if match("/css/") {
-			fileServer("/css/", "css/")
-		} else if match("/js/") {
-			fileServer("/js/", "js/")
-		} else if match("/img/") {
-			fileServer("/img/", "img/")
-		} else if match("/cover/") {
-			http.StripPrefix("/cover/", http.FileServer(http.Dir(config.Data.Path.Cover))).ServeHTTP(w, r)
-		} else if match("/favicon.ico") {
-			fileServer("/", "img/")
-		} else if match("/book/") {
-			mux["/book"](w, r)
-		} else {
-			//fmt.Println(r.URL.Path)
-			mux["/"](w, r)
+		h(w, r)
+		return
+	}
+
+	match := func(pattern string) (matched bool) {
+		matched, _ = regexp.MatchString(pattern, r.URL.String())
+		return
+	}
+
+	fileServer := func(prefix string, dir string) {
+		http.StripPrefix(prefix, http.FileServer(http.Dir(config.Path.Theme+dir))).ServeHTTP(w, r)
+	}
+
+	if match("/css/") {
+		fileServer("/css/", "css/")
+	} else if match("/js/") {
+		fileServer("/js/", "js/")
+	} else if match("/cover/") {
+		http.StripPrefix("/cover/", http.FileServer(http.Dir(config.Path.Cover))).ServeHTTP(w, r)
+	}  else if match("/img/") {
+		fileServer("/img/", "img/")
+	} else if match("favicon.ico"){
+		fileServer("/", "img/")
+	} else if match("/book/") {
+		// Get session
+		ses, err := session.Get(r, "user")
+		if err != nil {
+			_, _ = fmt.Fprintln(w, "Error 1")
+			return
 		}
-		return
-	}
-	_, exist := session.GetSession(w, r).GetAttr("user")
-	if !exist {
+		// Check permission
+		per, ok := ses.Values["permission"].(int64)
+		if !ok {
+			public["/login"](w, r)
+			return
+		}
+
+		if per&1 == 0 {
+			_, _ = fmt.Fprintln(w, "Do not have permission")
+			return
+		}
+		private["/book"](w, r)
+	}  else {
 		fmt.Println(r.URL.Path)
-		home.Login(w, r)
-		return
 	}
-	mux[r.URL.Path](w, r)
+
 }
+
 
 
 
