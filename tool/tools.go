@@ -1,9 +1,10 @@
-package tools
+package tool
 
 import (
 	"bytes"
 	"encoding/json"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -43,4 +44,12 @@ func Min(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func IsNum(n string) bool {
+	_, err := strconv.Atoi(n)
+	if err != nil {
+		return false
+	}
+	return true
 }

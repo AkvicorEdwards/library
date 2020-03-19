@@ -15,6 +15,7 @@ var Register *template.Template
 var Book *template.Template
 var BookAdd *template.Template
 var BookIndex *template.Template
+var BookComplex *template.Template
 
 
 func Parse() {
@@ -25,6 +26,7 @@ func Parse() {
 	Book = addFromFile("./tpl/ori/book.tpl")
 	BookAdd = addFromFile("./tpl/ori/book-add.tpl")
 	BookIndex = addFromFile("./tpl/ori/book-index.tpl")
+	BookComplex = addFromFile("./tpl/ori/book-complex.tpl")
 
 	fmt.Printf("Parsing the html template was completed with %d errors\n", errCnt)
 }

@@ -34,6 +34,8 @@ func ParsePrefix() {
 	private["/set/start/read"] = book.SetStartRead
 	private["/fix"] = book.Fix
 	private["/fix/cover"] = book.FixCover
+	private["/fix/favour"] = book.FixFavour
+	private["/del/favour"] = book.DelFavour
 	private["/books"] = book.Index
 	private["/book"] = book.View
 

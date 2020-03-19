@@ -51,7 +51,7 @@ func AddBook(w http.ResponseWriter, r *http.Request) {
 				}
 				switch name {
 				case "tag":
-					form["tag"] = tools.StringSplitBySpace(b.String())
+					form["tag"] = tool.StringSplitBySpace(b.String())
 				case "time":
 					form["time"] = []mysql.FormTime{
 						{
@@ -252,12 +252,46 @@ func Fix(w http.ResponseWriter, r *http.Request) {
 		author := r.PostFormValue("author")
 		translator := r.PostFormValue("translator")
 		publisher := r.PostFormValue("publisher")
-		tag, err := json.Marshal(tools.StringSplitBySpace(r.PostFormValue("tag")))
+		tag, err := json.Marshal(tool.StringSplitBySpace(r.PostFormValue("tag")))
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		_, err = mysql.Exec(`UPDATE books SET book=?, author=?, translator=?, publisher=?, tag=? WHERE id = ?`, book, author, translator, publisher, string(tag), ids)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		http.Redirect(w, r, r.Referer(), http.StatusFound)
+	}
+}
+func FixFavour(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		id := r.PostFormValue("id")
+		ids := r.PostFormValue("ids")
+		page := r.PostFormValue("page")
+		tm := r.PostFormValue("time")
+		content := r.PostFormValue("contents")
+		comment := r.PostFormValue("comment")
+		if !tool.IsNum(ids) {
+			return
+		}
+		_, err := mysql.Exec(`UPDATE books SET favour = JSON_REPLACE(favour, '$[`+ids+`]', JSON_OBJECT("page", ?, "time", ?, "content", ?, "comment", ?)) WHERE id = ?`, page, tm, content, comment, id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		http.Redirect(w, r, r.Referer(), http.StatusFound)
+	}
+}
+func DelFavour(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		id := r.PostFormValue("id")
+		ids := r.PostFormValue("ids")
+		if !tool.IsNum(ids) {
+			return
+		}
+		_, err := mysql.Exec(`UPDATE books SET favour = JSON_REMOVE(favour, '$[`+ids+`]') WHERE id = ?`, id)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -321,9 +355,23 @@ func View(w http.ResponseWriter, r *http.Request) {
 
 	book, _ := json.Marshal(data)
 	urlShort := fmt.Sprintf("%s://%s/", config.Server.Protocol, r.Host)
+	if id == "1"{
+		phrase := map[string]interface{}{
+			"lang": "zh-cn",
+			"title": data.Book,
+			"Books": string(book),
+			"UrlShort": urlShort,
+			"Id": id,
+		}
+		if err := tpl.BookComplex.Execute(w, phrase); err != nil {
+			fmt.Println(err)
+			_, _ = fmt.Fprintf(w, "%v", "Error")
+		}
+		return
+	}
 	phrase := map[string]interface{}{
 		"lang": "zh-cn",
-		"title": "Books",
+		"title": data.Book,
 		"Books": string(book),
 		"UrlShort": urlShort,
 		"Id": id,

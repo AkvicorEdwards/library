@@ -149,31 +149,10 @@
 
 <script type="text/javascript">
     let books = JSON.parse({{ .Books }});
+    let rid = {{ .Id }};
     console.log({{.Books}});
-
-    document.getElementById("title").innerText = books.book;
-    document.getElementById("author").innerText = books.author;
-    document.getElementById("translator").innerText = books.translator;
-    document.getElementById("publisher").innerText = books.publisher;
-    document.getElementById("cover").innerHTML = `<img src="/cover/` + books.cover + `" width="70%" />`;
-
-    let reading = "<strong>|</strong>";
-    let tag = "<strong>|</strong>";
-    let favour = "<br /> <strong>>-------<</strong> <br /><br />";
-
-    for (let i = 0; i < books.reading.length; i++) {
-        reading += " " + books.reading[i].start_time + " <strong>to</strong> " + books.reading[i].end_time + " <strong>|</strong>";
-    }
-    for (let i = 0; i < books.tag.length; i++) {
-        tag += " " + books.tag[i] + "<strong> |</strong>";
-    }
-    for (let i = 0; i < books.favour.length; i++) {
-        favour += `<div><a><strong>[ </strong>` + books.favour[i].page + `<strong> ]</strong></a><a><strong>[ </strong>` + books.favour[i].time + `<strong> ]</strong></a><strong><p>` + books.favour[i].content + `</p></strong><a><strong>[ </strong>` + books.favour[i].comment + `<strong> ]</strong></a></div><br /><strong>>-------<</strong> <br /><br />`;
-    }
-
-    document.getElementById("reading").innerHTML = reading;
-    document.getElementById("tag").innerHTML = tag;
-    document.getElementById("favour").innerHTML = favour;
+    addInfo();
+    addFavour();
 
     function add() {
         document.getElementById("add").style.display = "block";
@@ -188,7 +167,71 @@
         document.getElementById("fix").style.display = "block";
         document.getElementById("fix_cover").style.display = "block";
         document.getElementById("fix_click").style.display = "none";
+    }
+    function addInfo() {
+        document.getElementById("title").innerText = books.book;
+        document.getElementById("author").innerText = books.author;
+        document.getElementById("translator").innerText = books.translator;
+        document.getElementById("publisher").innerText = books.publisher;
+        document.getElementById("cover").innerHTML = `<img src="/cover/` + books.cover + `" width="70%" />`;
+        let reading = "<strong>|</strong>";
+        for (let i = 0; i < books.reading.length; i++) {
+            reading += " " + books.reading[i].start_time + " <strong>to</strong> " + books.reading[i].end_time + " <strong>|</strong>";
+        }
+        document.getElementById("reading").innerHTML = reading;
+        let tag = "<strong>|</strong>";
+        for (let i = 0; i < books.tag.length; i++) {
+            tag += " " + books.tag[i] + "<strong> |</strong>";
+        }
+        document.getElementById("tag").innerHTML = tag;
+    }
+    function addFavour() {
+        let favour = "<br /> <strong>-----------------</strong> <br /><br />";
+        for (let i = 0; i < books.favour.length; i++) {
+            favour += `<div id='`+i+`'><a><strong>[ </strong>`
+                + books.favour[i].page +
+                `<strong> ]</strong></a><a><strong>[ </strong>`
+                + books.favour[i].time +
+                `<strong> ]</strong></a><strong><p>`
+                + books.favour[i].content +
+                `</p></strong><a><strong>[ </strong>`
+                + books.favour[i].comment +
+                `<strong> ]</strong></a> </div>`
+                + `<br /><strong onclick="fixFavour('`+i+`')">-----------------</strong> <br /><br />`;
+        }
+        document.getElementById("favour").innerHTML = favour;
+    }
+    function fixFavour(id) {
+        let f = `<form action="/del/favour" method="post" id="d`+id+`" style="display: none">`;
+        f += `<label for="ids"></label><input type="number" name="ids" id="ids" value="`+id+`" style="display: none">`;
+        f += `<label for="id"></label><input type="number" name="id" id="id" value="`+rid+`" style="display: none">`;
+        f += `</form>`;
+        f += `<strong onclick="del('`+id+`')"> (╯°Д°)╯ ┴─┴ </strong> <br /><br />`;
+        f += `<form action="/fix/favour" method="post" id="f`+id+`">`;
+        f += `<label for="ids"></label><input type="number" name="ids" id="ids" value="`+id+`" style="display: none">`;
+        f += `<label for="id"></label><input type="number" name="id" id="id" value="`+rid+`" style="display: none">`;
+        f += `<table>`;
+        f += `<tr><td><label for="page">Page</label></td>`;
+        f += `<td><input type="number" name="page" id="page" value="`+books.favour[id].page+`" required></td></tr>`;
+        f += `<tr><td><label for="time">Time</label></td>`;
+        f += `<td><input type="text" name="time" id="time" value="`+ books.favour[id].time +`" required></td></tr>`;
+        f += `<tr><td><label for="contents">content </label></td>`;
+        f += `<td><textarea class="comments" name="contents" id="contents" rows="4" cols="50" required>`+ books.favour[id].content +`</textarea></td></tr>`;
+        f += `<tr><td><label for="comment">comment </label></td>`;
+        f += `<td><textarea class="comments" name="comment" id="comment" rows="4" cols="50">`+ books.favour[id].comment +`</textarea></td></tr>`;
+        f += `</table>`;
+        f += `</form>`;
+        f += `<br /><strong  onclick="document.getElementById('f`+id+`').submit()"> ┬─┬ ノ( ' - 'ノ) </strong><br />`;
+        document.getElementById(id).innerHTML = f
+    }
+    function del(id) {
+        if (document.getElementById("f"+id).elements['comment'].value === '7') {
+            document.getElementById("d"+id).submit()
+        }else {
+            alert('Delete failed')
+        }
 
     }
 </script>
+
 </html>
