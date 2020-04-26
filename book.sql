@@ -2,8 +2,7 @@ use book;
 
 create table books
 (
-    id          int auto_increment
-        primary key,
+    id          int auto_increment primary key,
     book        varchar(100)  null,
     author      varchar(100)  null,
     translator  varchar(100)  null,

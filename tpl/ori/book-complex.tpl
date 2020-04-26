@@ -55,9 +55,17 @@
 </body>
 
 <script type="text/javascript">
+    function HTMLEncode(html) {
+        let temp = document.createElement("div");
+        (temp.textContent != null) ? (temp.textContent = html) : (temp.innerText = html);
+        let output = temp.innerHTML;
+        temp = null;
+        return output;
+    }
     let books = JSON.parse({{ .Books }});
     let rid = {{ .Id }};
-    console.log({{.Books}});
+    {{/*console.log({{.Books}});*/}}
+
 
     addFavour();
 
@@ -68,16 +76,30 @@
     function addFavour() {
         let favour = "<br /> <strong>-----------------</strong> <br /><br />";
         for (let i = 0; i < books.favour.length; i++) {
+            let cont = HTMLEncode(books.favour[i].content).replace(" ","&nbsp;").split(/\r?\n/);
+            let comm = HTMLEncode(books.favour[i].comment).replace(" ","&nbsp;").split(/\r?\n/);
+
             favour += `<div id='`+i+`'><a><strong>[ </strong>`
                 + books.favour[i].page +
                 `<strong> ]</strong></a><a><strong>[ </strong>`
                 + books.favour[i].time +
-                `<strong> ]</strong></a><strong><p>`
-                + books.favour[i].content +
-                `</p></strong><a><strong>[ </strong>`
-                + books.favour[i].comment +
-                `<strong> ]</strong></a> </div>`
+                `<strong> ]</strong></a><br /><br /><strong>`;
+
+            // favour += books.favour[i].content;
+            for (let i = 0; i < cont.length; i++) {
+                favour += `<a>`+cont[i] + `</a><br />`;
+            }
+
+            favour += `</strong>>---------<br />`;
+
+            // favour += books.favour[i].comment;
+            for (let i = 0; i < comm.length; i++) {
+                favour += `<a>`+comm[i] + `</a><br />`;
+            }
+
+            favour += ` </div>`
                 + `<br /><strong onclick="fixFavour('`+i+`')">-----------------</strong> <br /><br />`;
+
         }
         document.getElementById("favour").innerHTML = favour;
     }
