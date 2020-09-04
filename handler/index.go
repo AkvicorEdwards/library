@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"library/cookie"
+	"library/def"
 	"library/operator"
 	"library/session"
 	"library/tpl"
@@ -13,7 +14,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		if err := tpl.Index.Execute(w, nil); err != nil {
 			fmt.Println(err)
-			_, _ = fmt.Fprintf(w, "%v", "Error")
+			Fprintf(w, "%v", "Error")
 		}
 	}
 }
@@ -47,7 +48,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		if err := tpl.Register.Execute(w, nil); err != nil {
 			fmt.Println(err)
-			_, _ = fmt.Fprintf(w, "%v", "Error")
+			Fprintf(w, "%v", "Error")
 		}
 		return
 	}
@@ -55,11 +56,15 @@ func register(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	nickname := r.FormValue("nickname")
 	password := r.FormValue("password")
-	//permissionCode := r.FormValue("p_code")
+	permissionCode := r.FormValue("p_code")
+	if permissionCode != def.RegisterCode {
+		Fprintln(w, "ERROR")
+		return
+	}
 
 	ok := operator.AddUser(username, nickname, password)
 	if !ok {
-		_, _ = fmt.Fprintln(w, "ERROR")
+		Fprintln(w, "ERROR")
 		return
 	}
 
