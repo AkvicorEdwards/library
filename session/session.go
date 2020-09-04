@@ -16,7 +16,7 @@ func Get(r *http.Request, name string) (*sessions.Session, error) {
 	return store.Get(r, name)
 }
 
-func New(r *http.Request, name string) (*sessions.Session, error)  {
+func New(r *http.Request, name string) (*sessions.Session, error) {
 	return store.New(r, name)
 }
 
@@ -27,7 +27,6 @@ func Save(w http.ResponseWriter, r *http.Request, session *sessions.Session) err
 func MaxAge(age int) {
 	store.MaxAge(age)
 }
-
 
 //func use(w http.ResponseWriter, r *http.Request) {
 //	// Get a session. We're ignoring the error resulted from decoding an

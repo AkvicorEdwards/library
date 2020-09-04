@@ -2,84 +2,53 @@ package handler
 
 import (
 	"fmt"
-	"library/config"
-	"library/handler/book"
-	"library/handler/home"
+	"io"
 	"library/session"
 	"net/http"
+	"os"
 	"regexp"
 )
 
 type str2func map[string]func(http.ResponseWriter, *http.Request)
 
 var public str2func
-var protected str2func
-var private str2func
-var api str2func
 
 func ParsePrefix() {
 	public = make(str2func)
-	protected = make(str2func)
-	private = make(str2func)
-	api = make(str2func)
 
-	private["/"] = home.Home
-	public["/login"] = home.Login
-	public["/register"] = home.Register
+	// 界面
+	public["/"] = index
+	public["/login"] = login
+	public["/register"] = register
+	public["/add/book"] = AddBook
+	public["/books"] = bookIndex
+	public["/book"] = bookView
 
-	// Book
-	private["/add/book"] = book.AddBook
-	private["/add/favour"] = book.AddFavour
-	private["/set/time"] = book.SetTime
-	private["/set/start/read"] = book.SetStartRead
-	private["/fix"] = book.Fix
-	private["/fix/cover"] = book.FixCover
-	private["/fix/favour"] = book.FixFavour
-	private["/del/favour"] = book.DelFavour
-	private["/books"] = book.Index
-	private["/book"] = book.View
+	public["/add/favour"] = bookAddFavour
+	public["/set/time"] = bookSetTime
+	public["/set/start/read"] = bookSetStartRead
+	public["/fix"] = bookFix
+	public["/fix/cover"] = bookFixCover
+	public["/fix/favour"] = bookFixFavour
+	public["/del/favour"] = bookDelFavour
 
 }
 
-type MyHandler struct {}
+type MyHandler struct{}
 
 func (*MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	// Public
+	if r.URL.Path == "/register" {
+		public["/register"](w, r)
+		return
+	}
+
+	if session.GetUUID(r) <= 0 {
+		public["/login"](w, r)
+		return
+	}
+
 	if h, ok := public[r.URL.Path]; ok {
-		h(w, r)
-		return
-	}
-	// API
-	if h, ok := api[r.URL.Path]; ok {
-		h(w, r)
-		return
-	}
-	// Some content requires login to display
-	if h, ok := protected[r.URL.Path]; ok {
-		h(w, r)
-		return
-	}
-	// Need to be logged in
-	if h, ok := private[r.URL.Path]; ok {
-		// Get session
-		ses, err := session.Get(r, "user")
-		if err != nil {
-			_, _ = fmt.Fprintln(w, "Error 1")
-			return
-		}
-		// Check permission
-		per, ok := ses.Values["permission"].(int64)
-		if !ok {
-			public["/login"](w, r)
-			return
-		}
-
-		if per&1 == 0 {
-			_, _ = fmt.Fprintln(w, "Do not have permission")
-			return
-		}
-
 		h(w, r)
 		return
 	}
@@ -89,45 +58,57 @@ func (*MyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileServer := func(prefix string, dir string) {
-		http.StripPrefix(prefix, http.FileServer(http.Dir(config.Path.Theme+dir))).ServeHTTP(w, r)
-	}
-
-	if match("/css/") {
-		fileServer("/css/", "css/")
-	} else if match("/js/") {
-		fileServer("/js/", "js/")
+	if match("/favicon.ico") {
+		download(w, "./favicon.ico")
 	} else if match("/cover/") {
-		http.StripPrefix("/cover/", http.FileServer(http.Dir(config.Path.Cover))).ServeHTTP(w, r)
-	}  else if match("/img/") {
-		fileServer("/img/", "img/")
-	} else if match("favicon.ico"){
-		fileServer("/", "img/")
+		http.StripPrefix("/cover/", http.FileServer(http.Dir("./cover/"))).ServeHTTP(w, r)
 	} else if match("/book/") {
-		// Get session
-		ses, err := session.Get(r, "user")
-		if err != nil {
-			_, _ = fmt.Fprintln(w, "Error 1")
-			return
-		}
-		// Check permission
-		per, ok := ses.Values["permission"].(int64)
-		if !ok {
-			public["/login"](w, r)
-			return
-		}
-
-		if per&1 == 0 {
-			_, _ = fmt.Fprintln(w, "Do not have permission")
-			return
-		}
-		private["/book"](w, r)
-	}  else {
-		fmt.Println(r.URL.Path)
+		public["/book"](w, r)
 	}
 
 }
 
+func download(w http.ResponseWriter, filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		_, _ = fmt.Fprintln(w, "File Not Found")
+		return
+	}
+	defer func() { _ = file.Close() }()
+	data := make([]byte, 1024)
+	for {
+		n, err1 := file.Read(data)
+		if err1 != nil && err1 != io.EOF {
+			_, _ = fmt.Fprintln(w, "File Read Error")
+			return
+		}
+		nn, err2 := w.Write(data[:n])
+		if err2 != nil || nn != n {
+			_, _ = fmt.Fprintln(w, "File Write Error")
+			return
+		}
+		if err1 == io.EOF {
+			return
+		}
+	}
+}
 
+func Fprint(w http.ResponseWriter, a ...interface{}) {
+	_, _ = fmt.Fprint(w, a...)
+}
 
+func Fprintf(w http.ResponseWriter, format string, a ...interface{}) {
+	_, _ = fmt.Fprintf(w, format, a...)
+}
+
+func Fprintln(w http.ResponseWriter, a ...interface{}) {
+	_, _ = fmt.Fprintln(w, a...)
+}
+
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
 

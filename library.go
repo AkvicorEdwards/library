@@ -2,39 +2,33 @@ package main
 
 import (
 	"fmt"
-	"library/config"
+	"library/def"
 	"library/handler"
-	"library/mysql"
-	"library/parameter"
+	"library/maintenance"
 	"library/tpl"
+	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 func main() {
-	tpl.Parse()
-	parameter.AddBasicArgs()
-	config.AddParseModule()
-	config.AddParseServer()
-	config.AddParseMySQL()
-	config.AddParseCert()
-	config.AddParsePath()
-	parameter.ParseArgs()
-	mysql.SetDEFAULT(config.MySQL)
-	handler.ParsePrefix()
-
-	server := http.Server {
-		Addr:           config.Server.Addr,
-		Handler:        &handler.MyHandler{},
-		ReadTimeout:    20 * time.Second,
-		MaxHeaderBytes: 8<<20,
+	if len(os.Args) >= 2 && os.Args[1] == "init" {
+		maintenance.InitDatabase()
 	}
 
-	fmt.Println("ListenAndServe: ", config.Server.Addr)
-	//if err := server.ListenAndServe(); err != nil {
-	//	panic(err)
-	//}
-	if err := server.ListenAndServeTLS(config.Cert.Cert, config.Cert.Key); err != nil {
+	go maintenance.ShutDownListener()
+	tpl.Parse()
+	handler.ParsePrefix()
+
+	addr := fmt.Sprintf(":%d", def.Port)
+	server := http.Server{
+		Addr:              addr,
+		Handler:           &handler.MyHandler{},
+		ReadTimeout:       20 * time.Minute,
+	}
+	log.Printf("http://127.0.0.1%s", addr)
+	if err := server.ListenAndServe(); err != nil {
 		panic(err)
 	}
 }
