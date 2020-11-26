@@ -200,7 +200,7 @@ func bookSetTime(w http.ResponseWriter, r *http.Request) {
 			Fprint(w,"Error")
 			return
 		}
-		ok := operator.SetTime(id, idInJson, r.PostFormValue("typ"),
+		ok := operator.SetTime(id, idInJson-1, r.PostFormValue("typ"),
 			r.PostFormValue("time"))
 		if !ok {
 			Fprint(w,"Error")
