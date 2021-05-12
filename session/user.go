@@ -3,23 +3,32 @@ package session
 import (
 	"fmt"
 	"github.com/gorilla/sessions"
-	"library/dam"
+	"library/db"
+	"library/def"
 	"net/http"
 )
 
-// 获取全局session
-func GetUser(r *http.Request) (*sessions.Session, error) {
-	return Get(r, "user")
+func GetUUID(r *http.Request) int64 {
+	ses, err := Get(r, def.SessionName)
+	if err != nil {
+		return 0
+	}
+	uuid, ok := ses.Values["uuid"].(int64)
+	if !ok {
+		return 0
+	}
+	return uuid
 }
 
-// 设置用户的Session
-func SetUserInfo(w http.ResponseWriter, r *http.Request, user *dam.User) {
-	// Session
+func Update(w http.ResponseWriter, r *http.Request, user *db.User, key string) {
 	ses, _ := GetUser(r)
-	ses.Values["uuid"] = user.Uuid
+	ses.Values["uuid"] = user.UUID
 	ses.Values["username"] = user.Username
 	ses.Values["nickname"] = user.Nickname
-	ses.Values["password"] = user.Password
+	if len(key) != 0 {
+		ses.Values["key"] = key
+	}
+
 	ses.Options.MaxAge = 60 * 60 * 24
 	err := ses.Save(r, w)
 	if err != nil {
@@ -28,14 +37,18 @@ func SetUserInfo(w http.ResponseWriter, r *http.Request, user *dam.User) {
 	}
 }
 
-func GetUUID(r *http.Request) int {
-	ses, err := Get(r, "user")
+func Verify(r *http.Request) bool {
+	ses, err := Get(r, def.SessionName)
 	if err != nil {
-		return 0
+		return false
 	}
-	uuid, ok := ses.Values["uuid"].(int)
+	key, ok := ses.Values["key"].(string)
 	if !ok {
-		return 0
+		return false
 	}
-	return uuid
+	return len(key) != 0
+}
+
+func GetUser(r *http.Request) (*sessions.Session, error) {
+	return Get(r, def.SessionName)
 }
