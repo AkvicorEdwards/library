@@ -37,8 +37,8 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 <title>Login</title>
 <form action="/page/login" method="post">
 	<input type="hidden" name="url" id="url" value="%s">
-	<label>Username:<input type="text" name="username" value="Akvicor"></label><br/><br/>
-	<label>Password:<input type="password" name="password" value="password"></label><br/><br/>
+	<label>Username:<input type="text" name="username"></label><br/><br/>
+	<label>Password:<input type="password" name="password"></label><br/><br/>
 	<input type="submit" value="Login">
 </form>`
 
