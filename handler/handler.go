@@ -29,6 +29,7 @@ func ParsePrefix() {
 
 	// Page
 	public["/page/login"] = loginPage
+	public["/page/register"] = registerPage
 	private["/page/book/add"] = pageBookAdd
 	private["/page/shelf"] = pageShelf
 	private["/page/book"] = pageBook

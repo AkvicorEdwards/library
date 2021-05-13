@@ -63,6 +63,10 @@ func EnableOption() {
 		def.SessionName = str[1]
 		return nil
 	})
+	option("-reg", 0, func(str []string) error {
+		def.PermitRegister = !def.PermitRegister
+		return nil
+	})
 
 	arg.EnableOptionCombination()
 
