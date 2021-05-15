@@ -111,9 +111,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 		cookie.SetUserInfo(w, user)
 		key := fmt.Sprintf("%x", util.SHA256String(username+password+fmt.Sprint(time.Now().UnixNano())))
 		session.Update(w, r, user, key)
-		Fprintf(w, `{"status":"%d", "key":"%s"}`, StatusOK, key)
+		Fprint(w, MarshalLoginResponseInfo(key, user))
 	} else {
-		Fprintf(w, ResponseER)
+		Fprint(w, ResponseER)
 	}
 }
 

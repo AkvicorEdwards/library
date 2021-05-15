@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"library/db"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,6 +68,25 @@ func Marshal(data interface{}) string {
 	return string(str)
 }
 
+type LoginResponseInfo struct {
+	UUID int64 `json:"uuid"`
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	ProfilePhoto string `json:"profile_photo"`
+	LastLogin int64 `json:"last_login"`
+	Key string `json:"key"`
+}
+
+func MarshalLoginResponseInfo(key string, user *db.User) string {
+	return Marshal(LoginResponseInfo{
+		UUID:         user.UUID,
+		Username:     user.Username,
+		Nickname:     user.Nickname,
+		ProfilePhoto: user.ProfilePhoto,
+		LastLogin:    user.LastLogin,
+		Key:          key,
+	})
+}
 
 func TplRedirect(url string) string {
 	tpl := `<!DOCTYPE html>
